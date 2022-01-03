@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import figlet from "figlet";
 import useInterval from "@use-it/interval";
 import weather from "weather-js";
@@ -6,19 +6,8 @@ import util from "util";
 
 const findWeather = util.promisify(weather.find);
 
-const formatWeather = ([results]) => {
-  const { location, current, forecast } = results;
-
-  const degreeType = location.degreetype;
-  const temperature = `${current.temperature}°${degreeType}`;
-  const conditions = current.skytext;
-  const low = `${forecast[1].low}°${degreeType}`;
-  const high = `${forecast[1].high}°${degreeType}`;
-
-  return `${temperature} e ${conditions} (${low} -> ${high})`;
-};
-
-import { FONTS } from "../utils/fonts";
+import { FONTS, formatWeather } from "../utils";
+import { useRequest } from "../hooks/useRequest";
 
 function Today({
   updateInterval = 900000,
@@ -27,39 +16,14 @@ function Today({
 }) {
   const [fontIndex, seetFontIndex] = useState(0);
   const [now, setNow] = useState(new Date());
-  const [weather, setWeather] = useState({
-    status: "loading",
-    error: null,
-    data: null,
-  });
-
-  const fetchWeather = useCallback(async () => {
-    setWeather({
-      status: "loading",
-      error: null,
-      data: null,
-    });
-
-    let data;
-
-    try {
-      data = await findWeather({
-        search,
-        degreeType,
-      });
-      setWeather({ status: "complete", error: null, data });
-    } catch (err) {
-      setWeather({ status: "error", error: err, data: null });
-    }
-  }, [search, degreeType]);
-
-  useEffect(() => {
-    fetchWeather();
-  }, [fetchWeather]);
-
-  useInterval(() => {
-    fetchWeather();
-  }, updateInterval);
+  const weather = useRequest(
+    findWeather,
+    {
+      search,
+      degreeType,
+    },
+    updateInterval
+  );
 
   useInterval(() => {
     setNow(new Date());
