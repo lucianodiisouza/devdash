@@ -46,4 +46,4 @@ const screen = blessed.screen({
 
 screen.key(["escape", "q", "C-c"], () => process.exit(0));
 
-const conmponente = render(<App />, screen);
+render(<App />, screen);
