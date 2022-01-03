@@ -2,24 +2,51 @@ import React, { useState, useRef, useEffect } from "react";
 import blessed from "blessed";
 
 import { render } from "react-blessed";
+import figlet from "figlet";
+
+const FONTS = [
+  "Straight",
+  "ANSI Shadow",
+  "Shimrod",
+  "doom",
+  "Big",
+  "Ogre",
+  "Small",
+  "Standard",
+  "Bigfig",
+  "Mini",
+  "Small Script",
+  "Small Shadow",
+];
 
 const App = () => {
-  const [count, setCount] = useState(0);
+  const [fontIndex, seetFontIndex] = useState(0);
   const timer = useRef();
 
   useEffect(() => {
-    timer.current = setTimeout(() => setCount(count + 1), 1000);
+    timer.current = setTimeout(() => seetFontIndex(fontIndex + 1), 1000);
     return () => clearTimeout(timer.current);
-  }, [count]);
+  }, [fontIndex]);
 
-  const dateTime = new Date().toLocaleString("pt-BR", {
+  const now = new Date();
+
+  const date = now.toLocaleString("pt-BR", {
     month: "long",
     day: "numeric",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
   });
+
+  const time = figlet.textSync(
+    now.toLocaleString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }),
+    {
+      font: FONTS[fontIndex % FONTS.length],
+    }
+  );
+
   return (
     <box
       top="center"
@@ -31,9 +58,9 @@ const App = () => {
         border: { fg: "blue" },
       }}
     >
-      {`Today is ${dateTime}
-            
-Counter is ${count}`}
+      {`${date}
+      
+${time}`}
     </box>
   );
 };
