@@ -1,23 +1,69 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import figlet from "figlet";
 import useInterval from "@use-it/interval";
+import weather from "weather-js";
+import util from "util";
+
+const findWeather = util.promisify(weather.find);
+
+const formatWeather = ([results]) => {
+  const { location, current, forecast } = results;
+
+  const degreeType = location.degreetype;
+  const temperature = `${current.temperature}°${degreeType}`;
+  const conditions = current.skytext;
+  const low = `${forecast[1].low}°${degreeType}`;
+  const high = `${forecast[1].high}°${degreeType}`;
+
+  return `${temperature} e ${conditions} (${low} -> ${high})`;
+};
 
 import { FONTS } from "../utils/fonts";
 
-function Today({ updateInterval = 1000 }) {
+function Today({
+  updateInterval = 900000,
+  search = "Belo Horizonte, MG",
+  degreeType = "C",
+}) {
   const [fontIndex, seetFontIndex] = useState(0);
-  const timer = useRef();
+  const [now, setNow] = useState(new Date());
+  const [weather, setWeather] = useState({
+    status: "loading",
+    error: null,
+    data: null,
+  });
 
-  useInterval(() => {
-    seetFontIndex(fontIndex + 1);
-  }, updateInterval);
+  const fetchWeather = useCallback(async () => {
+    setWeather({
+      status: "loading",
+      error: null,
+      data: null,
+    });
+
+    let data;
+
+    try {
+      data = await findWeather({
+        search,
+        degreeType,
+      });
+      setWeather({ status: "complete", error: null, data });
+    } catch (err) {
+      setWeather({ status: "error", error: err, data: null });
+    }
+  }, [search, degreeType]);
 
   useEffect(() => {
-    timer.current = setTimeout(() => seetFontIndex(fontIndex + 1), 1000);
-    return () => clearTimeout(timer.current);
-  }, [fontIndex]);
+    fetchWeather();
+  }, [fetchWeather]);
 
-  const now = new Date();
+  useInterval(() => {
+    fetchWeather();
+  }, updateInterval);
+
+  useInterval(() => {
+    setNow(new Date());
+  }, 60000); // 1min
 
   const date = now.toLocaleString("pt-BR", {
     month: "long",
@@ -49,15 +95,18 @@ function Today({ updateInterval = 1000 }) {
     >
       {`${date}
       
-${time}`}
+${time}
+
+${
+  weather.status === "loading"
+    ? "Carregando..."
+    : weather.error
+    ? `Erro: ${weather.error}`
+    : formatWeather(weather.data)
+}°C
+`}
     </box>
   );
 }
-
-// const screen = blessed.screen({
-//   autoPadding: true,
-//   smartCSR: true,
-//   title: "Blessed Dashboard",
-// });
 
 export default Today;
